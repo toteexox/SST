@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>문장 리듬 훈련 (Sentences Edition)</title>
+    <style>
+        :root {
+            --primary-blue: #2c5282;
+            --light-blue: #ebf8ff;
+            --accent-blue: #4299e1;
+            --main-gray: #edf2f7;
+            --dark-gray: #2d3748;
+            --border-color: #e2e8f0;
+            --btn-gray: #cbd5e0;
+        }
+
+        body {
+            background-color: #f7fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0; padding: 0; box-sizing: border-box;
+            min-height: 100vh; display: flex; justify-content: center; color: var(--dark-gray);
+        }
+
+        .container { display: flex; width: 100%; max-width: 1200px; padding: 20px; gap: 30px; }
+        
+        /* 왼쪽 내비게이션 패널 고정 */
+        .left-panel { flex: 1; max-width: 280px; background: #ffffff; padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column; height: fit-content; position: sticky; top: 20px; border: 1px solid var(--border-color); }
+        /* 오른쪽 콘텐츠 패널 */
+        .right-panel { flex: 3; background: #ffffff; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column; border: 1px solid var(--border-color); }
+
+        h2 { color: var(--primary-blue); font-size: 1.4rem; font-weight: 800; margin: 0 0 20px 0; text-align: center; border-bottom: 3px solid var(--accent-blue); padding-bottom: 10px; width: 100%; }
+        
+        /* 번호 내비게이션 그리드 */
+        .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 100%; }
+        .nav-btn { background-color: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 0; font-size: 0.9rem; font-weight: bold; color: var(--dark-gray); cursor: pointer; text-align: center; transition: all 0.2s; }
+        .nav-btn:hover { background-color: var(--light-blue); border-color: var(--accent-blue); color: var(--primary-blue); }
+
+        .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid var(--main-gray); padding-bottom: 15px; }
+        .main-title { color: var(--primary-blue); font-size: 1.6rem; font-weight: 800; margin: 0; }
+        .toggle-hide-btn { width: 55px; height: 45px; background-color: #718096; color: white; border: none; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; transition: background-color 0.2s; }
+
+        .word-row { margin-bottom: 15px; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; background: #fff; transition: all 0.2s; scroll-margin-top: 20px; }
+        .word-row:hover { background-color: #fcfcfc; border-color: var(--accent-blue); }
+        .word-main-trigger { padding: 15px; cursor: pointer; display: flex; flex-direction: column; gap: 10px; }
+
+        .audio-btn-group { display: flex; gap: 6px; }
+        .audio-btn-group.hidden { display: none; }
+        .audio-rect-btn { padding: 6px 12px; border-radius: 6px; border: 1.5px solid var(--btn-gray); background: white; color: #4a5568; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+        .audio-rect-btn:hover { background: var(--main-gray); }
+
+        .sentence-info { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+        .sentence-num { font-size: 0.9rem; font-weight: bold; color: var(--accent-blue); }
+        .sentence-eng { font-size: 1.35rem; font-weight: 600; color: #1a202c; line-height: 1.4; }
+        .sentence-eng b, .sentence-ipa b { font-weight: 900; color: #000; }
+        .sentence-ipa { font-size: 1.1rem; color: #4a5568; font-family: "Lucida Sans Unicode", sans-serif; background-color: var(--main-gray); padding: 6px 12px; border-radius: 6px; margin-top: 4px; display: inline-block; width: fit-content; }
+
+        @media (max-width: 900px) { 
+            .container { flex-direction: column; } 
+            .left-panel { max-width: 100%; position: relative; top: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 왼쪽 내비게이션 패널 -->
+    <div class="left-panel">
+        <h2>문장 바로가기</h2>
+        <div id="navGrid" class="nav-grid"></div>
+    </div>
+
+    <!-- 오른쪽 메인 콘텐츠 패널 -->
+    <div class="right-panel">
+        <div class="top-row">
+            <h1 class="main-title">문장 리듬 훈련</h1>
+            <button id="toggleAudioBtn" class="toggle-hide-btn" title="음성버튼 토글">🔊</button>
+        </div>
+        
+        <div id="wordList"></div>
+    </div>
+</div>
+
+<script>
+    const sentenceData = [
+        { id: "01", eng: "She is from <b>Ca</b>nada.", ipa: "ʃi: ɪz frʌm '<b>kæn</b>.ə.də" },
+        { id: "02", eng: "I <b>bought</b> it for myself", ipa: "aɪ <b>bɑ:t</b> ɪt fər maɪ'self" },
+        { id: "03", eng: "I was in the <b>ho</b>spital.", ipa: "aɪ wʌz ɪn ðə '<b>hɑ:</b>.spɪ.təl" },
+        { id: "04", eng: "<b>How</b> do you <b>know</b> my <b>name</b>?", ipa: "<b>haʊ</b> du: yu: <b>noʊ</b> maɪ <b>neɪm</b>" },
+        { id: "05", eng: "They <b>do</b> this <b>ev</b>ery <b>year</b>.", ipa: "ðeɪ <b>du:</b> ðɪs '<b>ev</b>.ri <b>yɪr</b>" },
+        { id: "06", eng: "Can I <b>get</b> you <b>some</b>thing?", ipa: "kæn aɪ <b>get</b> yə '<b>sʌm</b>.θɪŋ" },
+        { id: "07", eng: "It could <b>ha</b>ppen to <b>an</b>yone.", ipa: "ɪt kʊd '<b>hæp</b>.ən tə '<b>en</b>.i.wʌn" },
+        { id: "08", eng: "<b>Who</b> do they <b>think</b> they are?", ipa: "<b>hu:</b> du: ðeɪ <b>θɪŋk</b> ðeɪ ɑr <br><span style='font-size:0.9rem; color:#718096; font-weight: normal;'>발음 팁: 으우으우에이 잉에이알알</span>" },
+        { id: "09", eng: "I just <b>hope</b> you can for<b>give</b> me.", ipa: "aɪ dʒʌst <b>hoʊp</b> yu kæn fər'<b>gɪv</b> mi" },
+        { id: "10", eng: "<b>That</b> doesn't make any sense.", ipa: "<b>ðæt</b> 'dʌzənt meɪk 'eni sens" },
+        { id: "11", eng: "<b>That's</b> the saddest <b>thing</b> I ever <b>heard</b>.", ipa: "<b>ðæts</b> ðə 'sædəst <b>θɪŋ</b> aɪ 'ev.ər <b>hərd</b>." },
+        { id: "12", eng: "<b>What're</b> you talking about? It's <b>May</b>.", ipa: "'<b>wʌtər</b> yu: 'tɑ:kɪŋ ə'baʊt? ɪts <b>meɪ</b>" },
+        { id: "13", eng: "I <b>thought</b> we could <b>spend</b> some <b>time</b> together.", ipa: "aɪ <b>θɑ:t</b> wi kʊd <b>spend</b> sʌm <b>taɪm</b> tə'geð.ər" },
+        { id: "14", eng: "I <b>wouldn't</b> <b>blame</b> you if you <b>hated</b> me.", ipa: "aɪ '<b>wʊd</b>.ənt <b>bleɪm</b> yu: ɪf yu: '<b>heɪt</b>.əd mi" },
+        { id: "15", eng: "I was <b>won</b>dering if you could <b>help</b> me.", ipa: "aɪ wʌs '<b>wʌn</b>.dər.ɪŋ ɪf you kʊd <b>help</b> mi" },
+        { id: "16", eng: "<b>Why</b> am I <b>having</b> a <b>hard</b> <b>time</b> believing you?", ipa: "<b>waɪ</b> æm aɪ '<b>hæv</b>ɪŋ ə <b>hɑrd</b> <b>taɪm</b> bɪ'li:vɪŋ yu:" },
+        { id: "17", eng: "I had completely for<b>got</b>ten about that.", ipa: "aɪ hæd kəm'pli:t.li fər'<b>gɑ:</b>tən ə'baʊt ðæt" },
+        { id: "18", eng: "I <b>appreciate</b> that <b>you</b> appreciate that.", ipa: "aɪ ə'pri:ʃiˌeɪt ðæt <b>yu:</b> ə'pri:ʃiˌeɪt ðæt" },
+        { id: "19", eng: "<b>My</b> <b>Christmas</b> is <b>filled</b> with laughter and <b>joy</b>.", ipa: "<b>maɪ</b> '<b>krɪs</b>məs ɪz <b>fɪld</b> wɪð 'læftər æn <b>dʒɔɪ</b>" },
+        { id: "20", eng: "I just found out my <b>parents</b> are getting divorced.", ipa: "aɪ dʒʌst faʊnd aʊt my '<b>per</b>ənts ɑr 'getɪŋ dɪ'vɔrst" },
+        { id: "21", eng: "<b>What</b> would you <b>do</b> if you were in my <b>place</b>?", ipa: "<b>wʌt</b> wʊd yu: <b>du:</b> ɪf yu: wər ɪn maɪ <b>pleɪs</b>" },
+        { id: "22", eng: "<b>Do</b> we really <b>have</b> to <b>watch</b> this while we eat?", ipa: "<b>du:</b> wi: 'rɪli <b>hæv</b> tə <b>wɑtʃ</b> ðɪs waɪl wi: i:t" },
+        { id: "23", eng: "You <b>never</b> let me <b>talk</b> about <b>what</b> I <b>want</b> to <b>talk</b> about.", ipa: "yu: '<b>nev</b>ər let mi <b>tɔ:k</b> ə'baʊt <b>wʌt</b> aɪ '<b>wʌ</b>.nə <b>tɔ:k</b> ə'baʊt" },
+        { id: "24", eng: "I'm a <b>lot</b> <b>more</b> competent than you can <b>imagine</b>.", ipa: "aɪm ə <b>lɑ:t</b> <b>mɔr</b> 'ka:mpətɪnt ðæn yu: kæn ɪ'<b>mædʒ</b>ən" },
+        { id: "25", eng: "For as <b>long</b> as I can re<b>member</b>, I've <b>hated</b> myself.", ipa: "fər əz <b>lɔŋ</b> əz aɪ kən rɪ'<b>memb</b>ər aɪv '<b>heɪt</b>əd ˌmaɪ'self" },
+        { id: "26", eng: "She's <b>co</b>vering because she's em<b>bar</b>rassed that she <b>likes</b> a <b>nurse</b>.", ipa: "ʃi:z '<b>kʌ</b>vərɪŋ bɪ'kɔ:z ʃi:z ɪm'<b>bæ</b>.rəst ðæt ʃi: <b>laɪks</b> ə <b>nərs</b>." },
+        { id: "27", eng: "Her <b>husband</b> <b>hasn't</b> <b>seen</b> her. She <b>didn't</b> <b>come</b> <b>home</b> <b>last</b> <b>night</b>.", ipa: "hər '<b>hʌz</b>bənd '<b>hæz</b>ənt <b>si:n</b> hər. ʃi '<b>dɪd</b>ənt <b>kʌm</b> <b>hoʊm</b> <b>læst</b> <b>naɪt</b>." },
+        { id: "28", eng: "I <b>can't</b> believe it's already been <b>fifty</b> <b>years</b> since you <b>married</b> me.", ipa: "aɪ <b>kænt</b> bɪ'li:v ɪts ɑ:l'redi bɪn '<b>fɪf</b>ti <b>yɪrz</b> sɪns yu: '<b>mær</b>.id mi" },
+        { id: "29", eng: "<b>Come</b> to <b>think</b> of it, it was awfully easy to <b>get</b> a <b>cab</b> during rush hour.", ipa: "<b>kʌm</b> tə <b>θɪŋk</b> ʌv ɪt, ɪt wʌz 'ɑ:fli 'i:zi tə <b>get</b> ə <b>kæb</b> 'dʊrɪŋ rʌʃ 'aʊər" },
+        { id: "30", eng: "I'm sorry. <b>I</b> was under the im<b>pres</b>sion that we were en<b>joy</b>ing our<b>selves</b>.", ipa: "aɪm 'sɑ:ri. <b>aɪ</b> wʌz ʌndər ði ɪm'<b>preʃ</b>ən ðæt wi wər en'<b>dʒɔɪ</b>ɪŋ aʊər'<b>selvz</b>" }
+    ];
+
+    let currentAudio = null;
+    let isAudioHidden = false;
+
+    const wordListContainer = document.getElementById('wordList');
+    const toggleAudioBtn = document.getElementById('toggleAudioBtn');
+    const navGridContainer = document.getElementById('navGrid');
+
+    // 왼쪽 숫자 내비게이션 버튼 생성 (1~30)
+    for (let i = 1; i <= 30; i++) {
+        const navBtn = document.createElement('button');
+        navBtn.classList.add('nav-btn');
+        navBtn.innerText = i;
+        navBtn.onclick = () => scrollToSentence(i);
+        navGridContainer.appendChild(navBtn);
+    }
+
+    // 볼륨 토글 버튼 기능
+    toggleAudioBtn.onclick = () => {
+        isAudioHidden = !isAudioHidden;
+        toggleAudioBtn.innerText = isAudioHidden ? "🔇" : "🔊";
+        document.querySelectorAll('.audio-btn-group').forEach(group => group.classList.toggle('hidden', isAudioHidden));
+    };
+
+    // 전체 문장 리스트 화면에 렌더링 (그룹핑 해제)
+    function renderAllSentences() {
+        wordListContainer.innerHTML = '';
+        
+        sentenceData.forEach(item => {
+            const row = document.createElement('div'); 
+            row.classList.add('word-row');
+            row.id = `sentence-box-${parseInt(item.id)}`; // 스크롤 타겟용 ID
+            
+            const trigger = document.createElement('div'); 
+            trigger.classList.add('word-main-trigger');
+            
+            // 배속 재생 버튼 그룹
+            const audioGroup = document.createElement('div'); 
+            audioGroup.classList.add('audio-btn-group');
+            if (isAudioHidden) audioGroup.classList.add('hidden');
+            
+            [1, 0.7, 0.5, 0.3].forEach(r => {
+                const ab = document.createElement('button'); 
+                ab.classList.add('audio-rect-btn'); 
+                ab.innerText = `x${r}`;
+                ab.onclick = (e) => { 
+                    e.stopPropagation(); // 카드 자체 클릭 이벤트 방지
+                    playSentenceAudio(item.id, r); 
+                }; 
+                audioGroup.appendChild(ab);
+            });
+            
+            // 문장 정보 레이아웃
+            const sentenceInfo = document.createElement('div'); 
+            sentenceInfo.classList.add('sentence-info');
+            
+            const numDisp = document.createElement('div');
+            numDisp.classList.add('sentence-num');
+            numDisp.innerText = `No. ${item.id}`;
+
+            const engText = document.createElement('div');
+            engText.classList.add('sentence-eng');
+            engText.innerHTML = item.eng;
+
+            const ipaText = document.createElement('div');
+            ipaText.classList.add('sentence-ipa');
+            ipaText.innerHTML = item.ipa;
+            
+            sentenceInfo.appendChild(numDisp);
+            sentenceInfo.appendChild(engText);
+            sentenceInfo.appendChild(ipaText);
+            
+            trigger.appendChild(audioGroup); 
+            trigger.appendChild(sentenceInfo);
+            
+            // 문장 박스 클릭 시 기본 1배속 오디오 재생
+            trigger.onclick = () => {
+                playSentenceAudio(item.id, 1);
+            };
+            
+            row.appendChild(trigger); 
+            wordListContainer.appendChild(row);
+        });
+    }
+
+    // 초기 실행 시 전체 문장 표시
+    renderAllSentences();
+
+    // 왼쪽 숫자 내비게이션 클릭 시 오직 '이동'만 수행 (자동 재생 X)
+    function scrollToSentence(num) {
+        const targetElement = document.getElementById(`sentence-box-${num}`);
+        if (targetElement) {
+            // 부드럽게 해당 문장 위치로 스크롤
+            targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            
+            // 이전 강조 테두리 초기화 후 현재 이동한 문장만 시각적 하이라이트
+            document.querySelectorAll('.word-row').forEach(el => el.style.borderColor = 'var(--border-color)');
+            targetElement.style.borderColor = 'var(--accent-blue)';
+        }
+    }
+
+    // 오디오 파일 재생 함수 (소문자 .mp3 매칭)
+    function playSentenceAudio(id, rate) {
+        if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+        const audioPath = `audio/${id}.mp3`;
+        currentAudio = new Audio(audioPath); 
+        currentAudio.playbackRate = rate; 
+        currentAudio.play().catch(e => console.warn(`음원 로드 실패: ${audioPath}`));
+    }
+</script>
+</body>
+</html>
